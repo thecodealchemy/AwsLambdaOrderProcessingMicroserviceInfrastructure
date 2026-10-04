@@ -19,11 +19,11 @@ env:
 jobs:
 
   # ============================================================
-  # DEV
+  # BUILD ONCE
   # ============================================================
 
-  dev:
-    name: Deploy DEV
+  build:
+    name: Test and Package
     runs-on: ubuntu-latest
 
     steps:
@@ -48,7 +48,7 @@ jobs:
         with:
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-DeployDev
+          role-session-name: GitHubActions-Build
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
@@ -62,9 +62,58 @@ jobs:
       - name: SAM build
         run: sam build
 
-      - name: SAM deploy DEV
+      - name: SAM package
+        run: |
+          sam package \
+            --output-template-file packaged.yaml \
+            --resolve-s3
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: sam-package
+          path: packaged.yaml
+          retention-days: 7
+
+
+  # ============================================================
+  # DEV
+  # ============================================================
+
+  dev:
+    name: Deploy DEV
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup AWS SAM
+        uses: aws-actions/setup-sam@v3
+        with:
+          use-installer: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sam-package
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-DeployDev
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Deploy DEV
         run: |
           sam deploy \
+            --template-file packaged.yaml \
             --config-env dev \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
@@ -87,18 +136,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Java 21
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-
       - name: Setup AWS SAM
         uses: aws-actions/setup-sam@v3
         with:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sam-package
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -110,18 +157,10 @@ jobs:
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
-      - name: Run Maven tests
-        run: mvn test
-
-      - name: SAM validate
-        run: sam validate
-
-      - name: SAM build
-        run: sam build
-
-      - name: SAM deploy STAGING
+      - name: Deploy STAGING
         run: |
           sam deploy \
+            --template-file packaged.yaml \
             --config-env staging \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
@@ -144,18 +183,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Java 21
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-
       - name: Setup AWS SAM
         uses: aws-actions/setup-sam@v3
         with:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sam-package
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -167,18 +204,10 @@ jobs:
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
-      - name: Run Maven tests
-        run: mvn test
-
-      - name: SAM validate
-        run: sam validate
-
-      - name: SAM build
-        run: sam build
-
-      - name: SAM deploy PROD
+      - name: Deploy PROD
         run: |
           sam deploy \
+            --template-file packaged.yaml \
             --config-env prod \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
