@@ -10,7 +10,8 @@
         "logs:*",
         "cloudwatch:*",
         "ssm:*",
-        "secretsmanager:*"
+        "secretsmanager:*",
+        "s3:GetObject"
       ],
       "Resource": "*"
     },

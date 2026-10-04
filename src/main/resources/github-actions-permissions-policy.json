@@ -18,7 +18,9 @@
         "cloudformation:GetTemplateSummary",
         "cloudformation:ListStackResources",
         "cloudformation:ListStacks",
-        "cloudformation:ValidateTemplate"
+        "cloudformation:ValidateTemplate",
+        "s3:PutObject",
+        "s3:GetObject"
       ],
       "Resource": "*"
     },
