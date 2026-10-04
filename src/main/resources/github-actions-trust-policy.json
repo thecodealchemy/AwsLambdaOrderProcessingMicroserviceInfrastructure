@@ -14,7 +14,8 @@
         "ForAnyValue:StringEquals": {
           "token.actions.githubusercontent.com:sub": [
             "repo:thecodealchemy@54054645/AwsLambdaOrderProcessingMicroserviceInfrastructure@1403933796:ref:refs/heads/master",
-            "repo:thecodealchemy@54054645/AwsLambdaOrderProcessingMicroserviceInfrastructure@1403933796:environment:staging"
+            "repo:thecodealchemy@54054645/AwsLambdaOrderProcessingMicroserviceInfrastructure@1403933796:environment:staging",
+            "repo:thecodealchemy@54054645/AwsLambdaOrderProcessingMicroserviceInfrastructure@1403933796:environment:prod"
           ]
         }
       }

@@ -222,6 +222,10 @@ Resources:
 
   OrderServiceSecret:
     Type: AWS::SecretsManager::Secret
+
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
     Properties:
       Name: !Sub /order-processing/${Environment}/service-secret
       Description: !Sub Secret credentials for Order Processing ${Environment}

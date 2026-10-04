@@ -1,4 +1,4 @@
-name: Deploy Staging
+name: Deploy Prod
 
 on:
   workflow_dispatch:
@@ -12,12 +12,12 @@ env:
   AWS_DEPLOY_ROLE: arn:aws:iam::135458291619:role/GitHubActionsDeployRole
 
 jobs:
-  deploy-staging:
-    name: Build and Deploy Staging
+  deploy-prod:
+    name: Build and Deploy Prod
     runs-on: ubuntu-latest
 
     environment:
-      name: staging
+      name: prod
 
     steps:
       - name: Checkout
@@ -41,7 +41,7 @@ jobs:
         with:
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-DeployStaging
+          role-session-name: GitHubActions-DeployProd
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
@@ -58,7 +58,7 @@ jobs:
       - name: SAM deploy
         run: |
           sam deploy \
-            --config-env staging \
+            --config-env prod \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --role-arn arn:aws:iam::135458291619:role/CloudFormationDeploymentRole
