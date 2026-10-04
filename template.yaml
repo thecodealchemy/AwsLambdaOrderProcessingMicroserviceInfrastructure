@@ -93,6 +93,24 @@ Resources:
         deadLetterTargetArn: !GetAtt OrderDlq.Arn
         maxReceiveCount: 5
 
+  # ---------------------------------------------------------
+  # DynamoDB Storage
+  # ---------------------------------------------------------
+  OrderDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      DeletionProtectionEnabled: true
+      TableName: !Sub OrderDB-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: OrderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: OrderId
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: OrderProcessingLambda
 
   # ---------------------------------------------------------
   # Lambda
@@ -103,7 +121,6 @@ Resources:
 
     Properties:
       FunctionName: !Sub OrderProcessingLambda-${Environment}
-
       Handler: com.example.OrderLambdaHandler::handleRequest
 
       CodeUri: .
@@ -116,6 +133,7 @@ Resources:
           DOWNSTREAM_TIMEOUT: !Ref DownstreamTimeout
           DOWNSTREAM_URL_PARAMETER: !Sub /order-processing/${Environment}/downstream-url
           ORDER_SERVICE_SECRET_ARN: !Ref OrderServiceSecret
+          ORDERDB: !Ref OrderDB
 
       Policies:
         - Statement:
@@ -128,6 +146,11 @@ Resources:
               Action:
                 - ssm:GetParameter
               Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/order-processing/${Environment}/downstream-url
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt OrderDB.Arn
 
       Events:
 

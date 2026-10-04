@@ -1,10 +1,10 @@
 name: Deploy Application
 
+# Currently stopping the
 on:
-  push:
-    branches:
-      - master
-
+#  push:
+#    branches:
+#      - master
   workflow_dispatch:
 
 permissions:

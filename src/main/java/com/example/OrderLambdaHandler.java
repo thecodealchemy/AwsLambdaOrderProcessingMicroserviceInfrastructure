@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.example.Config.ParameterStoreConfig;
 import com.example.Config.SecretsManagerConfig;
+import com.example.Database.DynamoDBHandler;
 import com.example.Entity.OrderRequest;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,8 @@ public class OrderLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResp
     private final ParameterStoreConfig parameterStoreConfig =
             new ParameterStoreConfig();
     private final SecretsManagerConfig secretsManagerConfig = new  SecretsManagerConfig();
+
+    private final DynamoDBHandler  dynamoDBHandler = new  DynamoDBHandler();
 
 
     @Override
@@ -62,6 +65,10 @@ public class OrderLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResp
                 "Downstream timeout: " + timeout
         );
 
+        String tableName = System.getenv("ORDERDB");
+
+        context.getLogger().log("Table name: " + tableName);
+
         context.getLogger().log(
                 "Received " + event.getRecords().size() + " SQS messages"
         );
@@ -80,6 +87,9 @@ public class OrderLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResp
                 context.getLogger().log("Order ID: " + request.getOrderId()
                         + " Customer ID: " + request.getCustomerId()
                         + " Amt: " + request.getAmount());
+
+                String saveResponse = dynamoDBHandler.addOrderToDb(request, tableName);
+                context.getLogger().log(saveResponse);
             } catch (Exception e) {
                 context.getLogger()
                        .log("Failed to process message Id: "

@@ -11,7 +11,11 @@
         "cloudwatch:*",
         "ssm:*",
         "secretsmanager:*",
-        "s3:GetObject"
+        "s3:GetObject",
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:TagResource",
+        "dynamodb:DeleteTable"
       ],
       "Resource": "*"
     },

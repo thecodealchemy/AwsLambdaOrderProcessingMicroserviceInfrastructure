@@ -13,8 +13,5 @@ aws iam create-role --role-name GitHubActionsDeployRole `
 --description "Allows GitHub Actions to deploy LambdaMicroserviceDemo"
 ```
 ```
-aws iam create-policy-version `
---policy-arn arn:aws:iam::135458291619:policy/CloudFormationDeploymentPolicy `                                                                                                 
---policy-document file://src/main/resources/cloudformation-deployment-policy.json `                                                                                            
---set-as-default
+aws iam create-policy-version --policy-arn arn:aws:iam::135458291619:policy/CloudFormationDeploymentPolicy --policy-document file://src/main/resources/cloudformation-deployment-policy.json --set-as-default
 ```
