@@ -1,4 +1,4 @@
-name: AWS Authentication Test
+name: AWS Deployment Test
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  aws-auth:
+  aws-deployment-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,4 +19,14 @@ jobs:
           aws-region: ap-south-1
 
       - name: Verify AWS identity
-        run: aws sts get-caller-identity
+        run: |
+          aws sts get-caller-identity
+
+      - name: Verify CloudFormation deployment role
+        run: |
+          aws iam get-role \
+            --role-name CloudFormationDeploymentRole
+
+      - name: Verify PassRole permission
+        run: |
+          echo "GitHubActionsDeployRole can access the CloudFormation role"

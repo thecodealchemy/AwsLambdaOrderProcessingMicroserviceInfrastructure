@@ -9,10 +9,8 @@
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:thecodealchemy/AwsLambdaOrderProcessingMicroserviceInfrastructure:*"
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:thecodealchemy@54054645/AwsLambdaOrderProcessingMicroserviceInfrastructure@1403933796:ref:refs/heads/master"
         }
       }
     }
