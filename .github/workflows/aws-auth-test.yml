@@ -22,11 +22,7 @@ jobs:
         run: |
           aws sts get-caller-identity
 
-      - name: Verify CloudFormation deployment role
+      - name: Verify CloudFormation access
         run: |
-          aws iam get-role \
-            --role-name CloudFormationDeploymentRole
-
-      - name: Verify PassRole permission
-        run: |
-          echo "GitHubActionsDeployRole can access the CloudFormation role"
+          aws cloudformation list-stacks \
+            --region ap-south-1
