@@ -1,0 +1,45 @@
+#version = 0.1
+#
+#[default.deploy.parameters]
+#stack_name = "LambdaMicroserviceDemo"
+#resolve_s3 = true
+#s3_prefix = "LambdaMicroserviceDemo"
+#confirm_changeset = true
+#capabilities = "CAPABILITY_IAM"
+#disable_rollback = false
+#image_repositories = []
+#
+#[default.global.parameters]
+#region = "ap-south-1"
+
+
+version = 0.1
+
+[dev.deploy.parameters]
+stack_name = "LambdaMicroserviceDemo-dev"
+resolve_s3 = true
+region = "ap-south-1"
+confirm_changeset = true
+disable_rollback = false
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=dev LambdaMemory=512 LambdaTimeout=30 BatchSize=5 MaximumConcurrency=5 LogRetentionDays=30 ApplicationName=OrderProcessing LogLevel=DEBUG DownstreamTimeout=5000"
+
+
+[staging.deploy.parameters]
+stack_name = "LambdaMicroserviceDemo-staging"
+resolve_s3 = true
+region = "ap-south-1"
+confirm_changeset = true
+disable_rollback = false
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=staging LambdaMemory=512 LambdaTimeout=30 BatchSize=5 MaximumConcurrency=10 LogRetentionDays=30 ApplicationName=OrderProcessing LogLevel=INFO DownstreamTimeout=5000"
+
+
+[prod.deploy.parameters]
+stack_name = "LambdaMicroserviceDemo-prod"
+resolve_s3 = true
+region = "ap-south-1"
+confirm_changeset = true
+disable_rollback = false
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=prod LambdaMemory=1024 LambdaTimeout=30 BatchSize=10 MaximumConcurrency=20 LogRetentionDays=90 ApplicationName=OrderProcessing LogLevel=WARN DownstreamTimeout=3000"

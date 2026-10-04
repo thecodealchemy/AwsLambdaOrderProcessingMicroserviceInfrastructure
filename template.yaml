@@ -1,0 +1,251 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: Order Processing Lambda Microservice
+
+# Todo: Add scheduler for test messages in dev
+Parameters:
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+  LambdaMemory:
+    Type: Number
+    Default: 512
+
+  LambdaTimeout:
+    Type: Number
+    Default: 30
+
+  BatchSize:
+    Type: Number
+    Default: 5
+
+  MaximumConcurrency:
+    Type: Number
+    Default: 5
+
+  LogRetentionDays:
+    Type: Number
+    Default: 30
+
+  ApplicationName:
+    Type: String
+    Default: OrderProcessing
+
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
+
+  DownstreamTimeout:
+    Type: Number
+    Default: 5000
+
+Globals:
+  Function:
+    Runtime: java21
+    Timeout: !Ref LambdaTimeout
+    MemorySize: !Ref LambdaMemory
+    Architectures:
+      - x86_64
+
+
+Resources:
+
+  # ---------------------------------------------------------
+  # Dead Letter Queue
+  # ---------------------------------------------------------
+
+  OrderDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub OrderProcessingDLQ-${Environment}
+      MessageRetentionPeriod: 1209600   # 14 days
+
+
+  # ---------------------------------------------------------
+  # Main Queue
+  # ---------------------------------------------------------
+
+  OrderQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub OrderProcessingQueue-${Environment}
+
+      # Lambda timeout = 30 seconds
+      # Visibility timeout should be significantly longer.
+      VisibilityTimeout: 180
+
+      # Keep messages in the main queue for 4 days
+      MessageRetentionPeriod: 345600
+
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt OrderDlq.Arn
+        maxReceiveCount: 5
+
+
+  # ---------------------------------------------------------
+  # Lambda
+  # ---------------------------------------------------------
+
+  OrderLambda:
+    Type: AWS::Serverless::Function
+
+    Properties:
+      FunctionName: !Sub OrderProcessingLambda-${Environment}
+
+      Handler: com.example.OrderLambdaHandler::handleRequest
+
+      CodeUri: .
+
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          APPLICATION_NAME: !Ref ApplicationName
+          LOG_LEVEL: !Ref LogLevel
+          DOWNSTREAM_TIMEOUT: !Ref DownstreamTimeout
+          DOWNSTREAM_URL_PARAMETER: !Sub /order-processing/${Environment}/downstream-url
+          ORDER_SERVICE_SECRET_ARN: !Ref OrderServiceSecret
+
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref OrderServiceSecret
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/order-processing/${Environment}/downstream-url
+
+      Events:
+
+        OrderQueueTrigger:
+          Type: SQS
+
+          Properties:
+            Queue: !GetAtt OrderQueue.Arn
+
+            # Maximum records delivered to one invocation
+            BatchSize: !Ref BatchSize
+
+            # Give Lambda up to 5 seconds to collect messages
+            MaximumBatchingWindowInSeconds: 5
+
+            # Only failed messages should be retried
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+            # Don't allow this queue to consume unlimited Lambda concurrency
+            ScalingConfig:
+              MaximumConcurrency: !Ref MaximumConcurrency
+
+
+  # ---------------------------------------------------------
+  # CloudWatch Log Group
+  # ---------------------------------------------------------
+
+  OrderLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${OrderLambda}
+      RetentionInDays: !Ref LogRetentionDays
+
+  OrderLambdaErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub OrderProcessingLambda-Errors-${Environment}
+      AlarmDescription: Alarm when OrderProcessingLambda has errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref OrderLambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref OrderProcessingAlertsTopic
+
+
+
+  OrderDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub OrderProcessingDLQ-Messages-${Environment}
+      AlarmDescription: Alarm when messages enter the Order Processing DLQ
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt OrderDlq.QueueName
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref OrderProcessingAlertsTopic
+
+
+  # ---------------------------------------------------------
+  # SSM Parameter - Environment Configuration
+  # ---------------------------------------------------------
+
+  OrderServiceUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /order-processing/${Environment}/downstream-url
+      Type: String
+      Value: !Sub https://example-${Environment}.internal
+      Description: !Sub Downstream service URL for ${Environment}
+
+
+  # ---------------------------------------------------------
+  # Secrets Manager
+  # ---------------------------------------------------------
+
+  OrderServiceSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub /order-processing/${Environment}/service-secret
+      Description: !Sub Secret credentials for Order Processing ${Environment}
+
+      GenerateSecretString:
+        SecretStringTemplate: '{"username":"order-service"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\'
+        
+
+  # ---------------------------------------------------------
+  # SNS Alert Topic
+  # ---------------------------------------------------------
+
+  OrderProcessingAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub OrderProcessingAlerts-${Environment}
+      DisplayName: !Sub Order Processing Alerts - ${Environment}
+
+  OrderProcessingAlertsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref OrderProcessingAlertsTopic
+      Protocol: email
+      Endpoint: hailkingcold@gmail.com
