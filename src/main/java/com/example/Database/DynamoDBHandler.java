@@ -20,7 +20,8 @@ public class DynamoDBHandler {
                         Map.of(
                                 "OrderId", AttributeValue.builder().s(orderRequest.getOrderId()).build(),
                                 "CustomerId", AttributeValue.builder().s(orderRequest.getCustomerId()).build(),
-                                "Amount", AttributeValue.builder().n(orderRequest.getAmount().toString()).build()
+                                "Amount", AttributeValue.builder().n(orderRequest.getAmount().toString()).build(),
+                                "Notify", AttributeValue.builder().bool(orderRequest.isNotify()).build()
                         )
                 ).conditionExpression("attribute_not_exists(OrderId)").tableName(tableName).build()
                 ).responseMetadata().requestId();

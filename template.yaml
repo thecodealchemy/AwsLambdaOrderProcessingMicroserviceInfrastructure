@@ -98,6 +98,8 @@ Resources:
   # ---------------------------------------------------------
   OrderDB:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       DeletionProtectionEnabled: true
       TableName: !Sub OrderDB-${Environment}
@@ -111,6 +113,16 @@ Resources:
       Tags:
         - Key: Project
           Value: OrderProcessingLambda
+
+#  CloudWatchMetricStream:
+#    Type: AWS::CloudWatch::MetricStream
+#    Properties:
+#      Name: !Sub OrderProcessingLambdaMetrics-${Environment}
+#      OutputFormat: json
+#      Tags:
+#        - Key: Project
+#          Value: OrderProcessingLambda
+
 
   # ---------------------------------------------------------
   # Lambda
@@ -134,6 +146,7 @@ Resources:
           DOWNSTREAM_URL_PARAMETER: !Sub /order-processing/${Environment}/downstream-url
           ORDER_SERVICE_SECRET_ARN: !Ref OrderServiceSecret
           ORDERDB: !Ref OrderDB
+          TOPIC_NAME: !Ref OrderProcessingAlertsTopic
 
       Policies:
         - Statement:
@@ -151,6 +164,16 @@ Resources:
               Action:
                 - dynamodb:PutItem
               Resource: !GetAtt OrderDB.Arn
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudwatch:PutMetricData
+              Resource: "*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sns:publish
+              Resource: !Ref OrderProcessingAlertsTopic
 
       Events:
 
@@ -240,17 +263,16 @@ Resources:
 
 
   # ---------------------------------------------------------
-  # Secrets Manager
+  # Secrets Manager Costs 0.5$/Month Currently commented out Don't want any cost
+        #    DeletionPolicy: Retain
+        #    UpdateReplacePolicy: Retain
   # ---------------------------------------------------------
 
   OrderServiceSecret:
     Type: AWS::SecretsManager::Secret
 
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-
     Properties:
-      Name: !Sub /order-processing/${Environment}/service-secret
+      Name: !Sub /order-processing/${Environment}/order-service-secret
       Description: !Sub Secret credentials for Order Processing ${Environment}
 
       GenerateSecretString:
