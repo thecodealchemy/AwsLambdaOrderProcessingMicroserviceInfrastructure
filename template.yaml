@@ -298,3 +298,91 @@ Resources:
       TopicArn: !Ref OrderProcessingAlertsTopic
       Protocol: email
       Endpoint: hailkingcold@gmail.com
+
+
+
+  ApiGatewaySqsRole:
+    Type: AWS::IAM::Role
+    Properties:
+
+      RoleName: !Sub OrderProcessingApiGatewaySqsRole-${Environment}
+
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+      Policies:
+
+        - PolicyName: SendOrderToSqs
+
+          PolicyDocument:
+            Version: "2012-10-17"
+
+            Statement:
+
+              - Effect: Allow
+
+                Action:
+                  - sqs:SendMessage
+
+                Resource:
+                  - !GetAtt OrderQueue.Arn
+  # ---------------------------------------------------------
+# API Gateway
+# ---------------------------------------------------------
+
+  OrderApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub OrderProcessingApi-${Environment}
+      ProtocolType: HTTP
+      Description: !Sub Order Processing API - ${Environment}
+
+  OrderApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref OrderApi
+      IntegrationType: AWS_PROXY
+      IntegrationSubtype: SQS-SendMessage
+      PayloadFormatVersion: "1.0"
+      CredentialsArn: !GetAtt ApiGatewaySqsRole.Arn
+
+      RequestParameters:
+        QueueUrl: !Ref OrderQueue
+        MessageBody: "$request.body"
+
+  OrderApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref OrderApi
+      RouteKey: "POST /orders"
+      Target: !Sub integrations/${OrderApiIntegration}
+
+  OrderApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref OrderApi
+      StageName: !Ref Environment
+      AutoDeploy: true
+
+
+Outputs:
+
+  OrderApiBaseUrl:
+    Description: Order Processing API base URL
+    Value: !Sub
+      - "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+      - ApiId: !Ref OrderApi
+
+  OrderApiUrl:
+    Description: Order Processing API endpoint
+    Value: !Sub
+      - "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/orders"
+      - ApiId: !Ref OrderApi
