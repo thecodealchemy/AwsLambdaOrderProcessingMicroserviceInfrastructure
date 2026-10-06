@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Secrets Manager icon">
-  <rect x="10" y="10" width="100" height="100" rx="18" fill="#F1F7ED"/>
-  <rect x="35" y="36" width="50" height="52" rx="10" fill="#4BBF6B"/>
-  <path d="M48 52h24v4H48zm0 10h18v4H48z" fill="#fff"/>
-  <circle cx="60" cy="73" r="8" fill="#fff"/>
-</svg>
-
