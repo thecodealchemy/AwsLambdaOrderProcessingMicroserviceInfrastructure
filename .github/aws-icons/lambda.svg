@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="API Gateway icon">
+  <rect x="10" y="10" width="100" height="100" rx="18" fill="#FFE7F0"/>
+  <path d="M28 78V42c0-4 3-7 7-7h20l10 10h20c4 0 7 3 7 7v26c0 4-3 7-7 7H35c-4 0-7-3-7-7z" fill="#FF4F8B"/>
+  <path d="M34 52h52v8H34zm0 16h38v8H34z" fill="#fff" opacity="0.9"/>
+  <circle cx="80" cy="52" r="7" fill="#fff"/>
+</svg>
+
